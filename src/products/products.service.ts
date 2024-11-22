@@ -1,37 +1,34 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Product } from './entities/product.entity';
-import { CreateProductDto } from './dto/create-product.dto';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Product } from './entities/products.entity';
 
 @Injectable()
 export class ProductsService {
-  private products: Product[] = []; // Simulando um banco de dados em memória
+  constructor(
+    @InjectRepository(Product) // Injeta o repositório do TypeORM
+    private readonly productRepository: Repository<Product>,
+  ) {}
 
-  findAll(): Product[] {
-    return this.products;
+  findAll(): Promise<Product[]> {
+    return this.productRepository.find(); // Retorna todos os produtos do banco
   }
 
-  findOne(id: number): Product {
-    return this.products.find(product => product.id === id);
+  findOne(id: number): Promise<Product> {
+    return this.productRepository.findOneBy({ id }); // Retorna o produto pelo ID
   }
 
-  create(createProductDto: CreateProductDto): void {
-    this.products.push({ ...createProductDto, id: this.products.length + 1 });
-    return 
+  create(product: Partial<Product>): Promise<Product> {
+    const newProduct = this.productRepository.create(product); // Cria uma instância
+    return this.productRepository.save(newProduct); // Salva no banco de dados
   }
 
-  update(id: number, updatedProduct: Partial<Product>): Product {
-    const index = this.products.findIndex(product => product.id === id);
-    if (index === -1) return null;
-
-    this.products[index] = { ...this.products[index], ...updatedProduct };
-    return this.products[index];
+  async update(id: number, updatedProduct: Partial<Product>): Promise<Product> {
+    await this.productRepository.update(id, updatedProduct); // Atualiza o registro no banco
+    return this.findOne(id); // Retorna o produto atualizado
   }
 
-  delete(id: number): boolean {
-    const index = this.products.findIndex(product => product.id === id);
-    if (index === -1) return false;
-
-    this.products.splice(index, 1);
-    return true;
+  async remove(id: number): Promise<void> {
+    await this.productRepository.delete(id); // Remove o produto pelo ID
   }
 }
